@@ -1,0 +1,7 @@
+.env
+config.yaml
+logs/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db

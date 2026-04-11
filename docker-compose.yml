@@ -1,0 +1,32 @@
+services:
+  workspace:
+    container_name: ${CONTAINER_NAME:-safe-proxy-workspace}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE_NAME:-safe-proxy-workspace:latest}
+    restart: unless-stopped
+    working_dir: /workspace
+    command: sleep infinity
+    environment:
+      MIHOMO_CONFIG_DIR: /root/.config/mihomo
+      TUN_DEVICE: ${TUN_DEVICE:-Mihomo}
+      DIRECT_ALLOWLIST_TCP: ${DIRECT_ALLOWLIST_TCP:-203.0.113.10:8388,198.51.100.20:8388}
+      DIRECT_ALLOWLIST_UDP: ${DIRECT_ALLOWLIST_UDP:-203.0.113.10:8388,198.51.100.20:8388}
+      WORKSPACE_DIR: /workspace
+      WORKSPACE_USER: ${WORKSPACE_USER:-workspace}
+      WORKSPACE_MODE: "1"
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      net.ipv4.ip_forward: "1"
+      net.ipv4.conf.all.src_valid_mark: "1"
+      net.ipv6.conf.all.disable_ipv6: "1"
+    volumes:
+      - ${MIHOMO_CONFIG_PATH:-./config.yaml}:/root/.config/mihomo/config.yaml:ro
+      - ./logs:/var/log
+      - ${WORKSPACE_MOUNT:-.}:/workspace
+    stdin_open: true
+    tty: true
