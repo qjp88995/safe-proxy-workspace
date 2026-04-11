@@ -25,6 +25,7 @@ services:
       VNC_LOCALHOST: "no"
     ports:
       - "${DESKTOP_VNC_BIND:-127.0.0.1}:${DESKTOP_VNC_PORT:-5901}:5901"
+    shm_size: ${DESKTOP_SHM_SIZE:-2gb}
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN

@@ -83,6 +83,7 @@ IMAGE_NAME=safe-proxy-workspace-desktop:latest
 DOCKERFILE=Dockerfile.desktop
 DESKTOP_MODE=1
 VNC_PASSWORD=replace-this-before-use
+DESKTOP_SHM_SIZE=2gb
 ```
 
 The desktop container also adds `SYS_ADMIN` so GUI browsers such as Google Chrome can use their Linux sandbox inside Docker. If you previously launched Chrome with `--no-sandbox`, remove that flag after recreating the container.
@@ -94,6 +95,8 @@ docker compose up -d
 ```
 
 In desktop mode, connect your VNC client to `127.0.0.1:5901` by default. The published port binds to `127.0.0.1` unless you change `DESKTOP_VNC_BIND`.
+
+The desktop container also sets a larger `/dev/shm` segment by default because GUI browsers such as Google Chrome can crash in containerized VNC sessions when shared memory is limited to Docker's default 64 MB. If needed, tune it with `DESKTOP_SHM_SIZE`.
 
 ## Using a different workspace directory
 

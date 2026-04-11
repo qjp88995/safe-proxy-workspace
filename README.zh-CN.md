@@ -83,6 +83,7 @@ IMAGE_NAME=safe-proxy-workspace-desktop:latest
 DOCKERFILE=Dockerfile.desktop
 DESKTOP_MODE=1
 VNC_PASSWORD=replace-this-before-use
+DESKTOP_SHM_SIZE=2gb
 ```
 
 桌面容器还会额外添加 `SYS_ADMIN`，这样 Google Chrome 这类图形浏览器在 Docker 里也能启用 Linux sandbox。若你之前是用 `--no-sandbox` 启动 Chrome，重建容器后请把这个参数去掉。
@@ -94,6 +95,8 @@ docker compose up -d
 ```
 
 在桌面模式下，默认用 VNC 客户端连接 `127.0.0.1:5901`。默认会把端口只绑定到宿主机 `127.0.0.1`，除非你主动修改 `DESKTOP_VNC_BIND`，否则不会直接暴露到所有网卡。
+
+桌面容器默认还会放大 `/dev/shm`，因为 Google Chrome 这类图形浏览器在 VNC 容器环境里如果继续使用 Docker 默认的 64 MB 共享内存，常见表现就是打开网页时直接崩溃。若需要调整，可以修改 `DESKTOP_SHM_SIZE`。
 
 ## 挂载其他工作目录
 
