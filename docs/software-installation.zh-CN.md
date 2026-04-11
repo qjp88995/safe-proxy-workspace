@@ -13,6 +13,12 @@ sudo apt-get update
 sudo apt-get dist-upgrade
 ```
 
+如需设置时区，执行：
+
+```bash
+sudo dpkg-reconfigure tzdata
+```
+
 ## 安装 Google Chrome
 
 先下载 Debian 安装包：

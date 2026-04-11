@@ -13,6 +13,12 @@ sudo apt-get update
 sudo apt-get dist-upgrade
 ```
 
+If you need to configure the timezone, run:
+
+```bash
+sudo dpkg-reconfigure tzdata
+```
+
 ## Install Google Chrome
 
 Download the Debian package:
