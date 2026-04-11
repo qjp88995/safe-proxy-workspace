@@ -5,8 +5,9 @@ MIHOMO_CONFIG_DIR="${MIHOMO_CONFIG_DIR:-/root/.config/mihomo}"
 TUN_DEVICE="${TUN_DEVICE:-Mihomo}"
 DIRECT_ALLOWLIST_TCP="${DIRECT_ALLOWLIST_TCP:-}"
 DIRECT_ALLOWLIST_UDP="${DIRECT_ALLOWLIST_UDP:-}"
-WORKSPACE_DIR="${WORKSPACE_DIR:-}"
 WORKSPACE_USER="${WORKSPACE_USER:-workspace}"
+WORKSPACE_HOME="${WORKSPACE_HOME:-/home/${WORKSPACE_USER}}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-${WORKSPACE_HOME}/workspace}"
 WORKSPACE_UID="${WORKSPACE_UID:-}"
 WORKSPACE_GID="${WORKSPACE_GID:-}"
 WORKSPACE_MODE="${WORKSPACE_MODE:-0}"
@@ -17,18 +18,21 @@ configure_resolver() {
 }
 
 configure_workspace_user() {
-  local detected_uid detected_gid group_name user_name home_dir
+  local detected_uid detected_gid group_name user_name current_group_name
 
   if [ -n "${WORKSPACE_DIR}" ] && [ -e "${WORKSPACE_DIR}" ]; then
     detected_uid="$(stat -c '%u' "${WORKSPACE_DIR}")"
     detected_gid="$(stat -c '%g' "${WORKSPACE_DIR}")"
-    WORKSPACE_UID="${WORKSPACE_UID:-${detected_uid}}"
-    WORKSPACE_GID="${WORKSPACE_GID:-${detected_gid}}"
+    if [ -z "${WORKSPACE_UID}" ] && [ "${detected_uid}" != "0" ]; then
+      WORKSPACE_UID="${detected_uid}"
+    fi
+    if [ -z "${WORKSPACE_GID}" ] && [ "${detected_gid}" != "0" ]; then
+      WORKSPACE_GID="${detected_gid}"
+    fi
   fi
 
-  if [ -z "${WORKSPACE_UID}" ] || [ -z "${WORKSPACE_GID}" ] || [ "${WORKSPACE_UID}" = "0" ]; then
-    return 1
-  fi
+  WORKSPACE_UID="${WORKSPACE_UID:-1000}"
+  WORKSPACE_GID="${WORKSPACE_GID:-1000}"
 
   group_name="$(getent group "${WORKSPACE_GID}" | cut -d: -f1 || true)"
   if [ -z "${group_name}" ]; then
@@ -45,17 +49,42 @@ configure_workspace_user() {
     if getent passwd "${user_name}" >/dev/null 2>&1; then
       user_name="${WORKSPACE_USER}-${WORKSPACE_UID}"
     fi
-    useradd --uid "${WORKSPACE_UID}" --gid "${WORKSPACE_GID}" --create-home --shell /bin/bash "${user_name}"
+    useradd \
+      --uid "${WORKSPACE_UID}" \
+      --gid "${WORKSPACE_GID}" \
+      --home-dir "${WORKSPACE_HOME}" \
+      --create-home \
+      --shell /bin/bash \
+      "${user_name}"
+  else
+    if [ "${user_name}" != "${WORKSPACE_USER}" ] && ! getent passwd "${WORKSPACE_USER}" >/dev/null 2>&1; then
+      current_group_name="$(id -gn "${user_name}")"
+      if [ "${current_group_name}" = "${user_name}" ] && ! getent group "${WORKSPACE_USER}" >/dev/null 2>&1; then
+        groupmod -n "${WORKSPACE_USER}" "${current_group_name}"
+      fi
+      usermod --login "${WORKSPACE_USER}" "${user_name}"
+      user_name="${WORKSPACE_USER}"
+    fi
+
+    usermod \
+      --home "${WORKSPACE_HOME}" \
+      --shell /bin/bash \
+      "${user_name}"
   fi
 
-  home_dir="$(getent passwd "${WORKSPACE_UID}" | cut -d: -f6)"
-  mkdir -p "${home_dir}"
-  chown "${WORKSPACE_UID}:${WORKSPACE_GID}" "${home_dir}"
-  export HOME="${home_dir}"
+  if ! id -nG "${user_name}" | tr ' ' '\n' | grep -qx sudo; then
+    usermod -aG sudo "${user_name}"
+  fi
+
+  mkdir -p "${WORKSPACE_HOME}" "${WORKSPACE_DIR}"
+  chown "${WORKSPACE_UID}:${WORKSPACE_GID}" "${WORKSPACE_HOME}"
+  export HOME="${WORKSPACE_HOME}"
   export WORKSPACE_RUNTIME_USER="${user_name}"
-  export WORKSPACE_RUNTIME_HOME="${home_dir}"
+  export WORKSPACE_RUNTIME_HOME="${WORKSPACE_HOME}"
+  export WORKSPACE_RUNTIME_DIR="${WORKSPACE_DIR}"
   mkdir -p /run
   printf '%s\n' "${user_name}" > /run/workspace-user
+  printf '%s\n' "${WORKSPACE_DIR}" > /run/workspace-dir
 }
 
 exec_as_workspace_user() {
@@ -66,7 +95,7 @@ exec_as_workspace_user() {
   exec setpriv \
     --reuid "${WORKSPACE_UID}" \
     --regid "${WORKSPACE_GID}" \
-    --clear-groups \
+    --init-groups \
     env \
     HOME="${WORKSPACE_RUNTIME_HOME}" \
     USER="${WORKSPACE_RUNTIME_USER}" \

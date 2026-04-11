@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gzip \
     iproute2 \
     iptables \
+    sudo \
     vim \
     wget \
     && rm -rf /var/lib/apt/lists/*
@@ -25,7 +26,14 @@ RUN wget -O /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/downloa
 RUN mkdir -p /root/.config/mihomo /var/log
 COPY config.example.yaml /root/.config/mihomo/config.yaml
 COPY entrypoint.sh /entrypoint.sh
+COPY workspace-shell.sh /etc/profile.d/workspace-shell.sh
 
 RUN chmod +x /entrypoint.sh
+RUN chmod 644 /etc/profile.d/workspace-shell.sh \
+    && printf '\n[ -r /etc/profile.d/workspace-shell.sh ] && . /etc/profile.d/workspace-shell.sh\n' >> /etc/bash.bashrc
+
+RUN mkdir -p /etc/sudoers.d \
+    && printf '%%sudo ALL=(ALL:ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/99-workspace \
+    && chmod 440 /etc/sudoers.d/99-workspace
 
 ENTRYPOINT ["/entrypoint.sh"]

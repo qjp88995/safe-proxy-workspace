@@ -10,7 +10,7 @@
 - 使用基于 TUN 的 relay chain 接管容器出站流量
 - 只允许直连代理节点本身
 - 当代理链不可用时，阻断其他所有出站流量
-- 让挂载目录中的文件尽量保持与宿主机一致的 UID/GID
+- 给用户一个正常的 home 目录，并把宿主机工作目录挂载到 `~/workspace`
 
 ## 运行要求
 
@@ -38,6 +38,7 @@ cp config.example.yaml config.yaml
 
 - 把 `DIRECT_ALLOWLIST_TCP` 和 `DIRECT_ALLOWLIST_UDP` 设置成与 `config.yaml` 中相同的代理 `IP:PORT`
 - 如果要挂载别的工作目录，修改 `WORKSPACE_MOUNT`
+- 如果想修改容器内用户名和 home 路径名，设置 `WORKSPACE_USER`
 
 4. 启动容器：
 
@@ -51,7 +52,9 @@ docker compose up -d
 ./enter-workspace.sh
 ```
 
-这个辅助脚本会保留映射后用户的 `HOME` 和 shell 环境，因此交互式 Bash 的彩色提示符与颜色输出会正常工作。
+这个辅助脚本会保留映射后用户的 `HOME` 和 shell 环境，并默认进入 `~/workspace`，因此交互式 Bash 的彩色提示符与颜色输出会正常工作。
+
+在容器里，映射出来的工作用户拥有正常的 home 目录 `/home/$WORKSPACE_USER`，而宿主机工作目录会挂载到 `~/workspace`。如果你想修改容器内用户名和 home 目录名，只需要调整 `.env` 里的 `WORKSPACE_USER`。这个用户可以像普通 Ubuntu 用户一样使用免密码 `sudo` 安装软件和管理自己的工具。
 
 6. 检查出口 IP：
 
@@ -59,31 +62,34 @@ docker compose up -d
 docker compose exec workspace curl -4 --max-time 15 https://ifconfig.me
 ```
 
-## 桌面 / VNC 预装版
+## 在 CLI 镜像和桌面镜像之间切换
 
-仓库现在还提供一个内置 XFCE 和 TigerVNC 的桌面镜像。
+Compose 现在只管理一个 `workspace` 服务。你可以通过修改 `.env`，把它切换成 CLI 镜像或者桌面 / VNC 镜像。
 
-1. 在 `.env` 中设置 VNC 密码：
+CLI 模式：
 
 ```bash
+IMAGE_NAME=safe-proxy-workspace:latest
+DOCKERFILE=Dockerfile
+DESKTOP_MODE=0
+```
+
+桌面 / VNC 模式：
+
+```bash
+IMAGE_NAME=safe-proxy-workspace-desktop:latest
+DOCKERFILE=Dockerfile.desktop
+DESKTOP_MODE=1
 VNC_PASSWORD=replace-this-before-use
 ```
 
-2. 启动桌面服务：
+然后像平时一样启动同一个服务：
 
 ```bash
-docker compose --profile desktop up -d workspace-desktop
+docker compose up -d
 ```
 
-3. 默认用 VNC 客户端连接 `127.0.0.1:5901`。
-
-默认会把端口只绑定到宿主机 `127.0.0.1`，除非你主动修改 `DESKTOP_VNC_BIND`，否则不会直接暴露到所有网卡。
-
-如果要进入这个桌面容器里的 shell：
-
-```bash
-COMPOSE_SERVICE=workspace-desktop ./enter-workspace.sh
-```
+在桌面模式下，默认用 VNC 客户端连接 `127.0.0.1:5901`。默认会把端口只绑定到宿主机 `127.0.0.1`，除非你主动修改 `DESKTOP_VNC_BIND`，否则不会直接暴露到所有网卡。
 
 ## 挂载其他工作目录
 
@@ -92,7 +98,7 @@ WORKSPACE_MOUNT=/your/project/path docker compose up -d
 ./enter-workspace.sh
 ```
 
-在 `/workspace` 下创建的文件会尽量使用与宿主机挂载目录一致的 UID/GID。
+在 `~/workspace` 下创建的文件会尽量使用与宿主机目录一致的 UID/GID。
 
 ## 使用预构建镜像
 
@@ -120,7 +126,17 @@ docker pull ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
 
 ```bash
 IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace:latest
-DESKTOP_IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
+DOCKERFILE=Dockerfile
+DESKTOP_MODE=0
+```
+
+或者把同一个 `workspace` 服务切换到桌面镜像：
+
+```bash
+IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
+DOCKERFILE=Dockerfile.desktop
+DESKTOP_MODE=1
+VNC_PASSWORD=replace-this-before-use
 ```
 
 然后执行：
@@ -184,7 +200,7 @@ docker compose down
 | --- | --- |
 | `Dockerfile` | 构建镜像 |
 | `Dockerfile.desktop` | 构建预装桌面 / VNC 镜像 |
-| `docker-compose.yml` | 运行工作容器 |
+| `docker-compose.yml` | 运行单一 workspace 容器并把宿主机项目挂载到 `~/workspace` |
 | `entrypoint.sh` | 配置 kill switch、策略路由、DNS 和 UID/GID 映射 |
 | `desktop-session.sh` | 在 TigerVNC 中启动 XFCE 会话 |
 | `enter-workspace.sh` | 以映射后的工作用户进入容器 |

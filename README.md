@@ -10,7 +10,7 @@ A fail-closed Docker workspace powered by Mihomo. Traffic inside the container e
 - Forces container egress through a TUN-based relay chain
 - Only allows direct connections to your proxy endpoints
 - Blocks all other outbound traffic if the proxy chain is unavailable
-- Keeps files created under the mounted workspace aligned with the host UID/GID
+- Gives the user a normal home directory while mounting the host workspace at `~/workspace`
 
 ## Requirements
 
@@ -38,6 +38,7 @@ cp config.example.yaml config.yaml
 
 - Set `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP` to the same proxy `IP:PORT` pairs from `config.yaml`
 - Set `WORKSPACE_MOUNT` if you want to mount a different host directory
+- Set `WORKSPACE_USER` if you want a different in-container username and home path
 
 4. Start the container:
 
@@ -51,7 +52,9 @@ docker compose up -d
 ./enter-workspace.sh
 ```
 
-This helper preserves the mapped user's `HOME` and shell environment, so the interactive Bash prompt and color output work as expected.
+This helper preserves the mapped user's `HOME` and shell environment, starts inside `~/workspace`, and keeps the interactive Bash prompt and color output working as expected.
+
+Inside the container, the mapped user gets a normal home directory at `/home/$WORKSPACE_USER`, and the host project is mounted at `~/workspace`. Change `WORKSPACE_USER` in `.env` if you want a different username and home directory name. The mapped user can use passwordless `sudo` to install packages and manage personal tools like on a regular Ubuntu workstation.
 
 6. Check the exit IP:
 
@@ -59,31 +62,34 @@ This helper preserves the mapped user's `HOME` and shell environment, so the int
 docker compose exec workspace curl -4 --max-time 15 https://ifconfig.me
 ```
 
-## Desktop/VNC variant
+## Switching between CLI and desktop images
 
-The repository also ships a preinstalled desktop image with XFCE and TigerVNC.
+Compose now manages a single `workspace` service. Switch it between the CLI image and the desktop/VNC image by changing `.env`.
 
-1. Set a VNC password in `.env`:
+CLI mode:
 
 ```bash
+IMAGE_NAME=safe-proxy-workspace:latest
+DOCKERFILE=Dockerfile
+DESKTOP_MODE=0
+```
+
+Desktop/VNC mode:
+
+```bash
+IMAGE_NAME=safe-proxy-workspace-desktop:latest
+DOCKERFILE=Dockerfile.desktop
+DESKTOP_MODE=1
 VNC_PASSWORD=replace-this-before-use
 ```
 
-2. Start the desktop service:
+Then start the same service as usual:
 
 ```bash
-docker compose --profile desktop up -d workspace-desktop
+docker compose up -d
 ```
 
-3. Connect your VNC client to `127.0.0.1:5901` by default.
-
-The published port binds to `127.0.0.1` by default so the VNC server is not exposed on all host interfaces unless you change `DESKTOP_VNC_BIND`.
-
-To open a shell inside the desktop container:
-
-```bash
-COMPOSE_SERVICE=workspace-desktop ./enter-workspace.sh
-```
+In desktop mode, connect your VNC client to `127.0.0.1:5901` by default. The published port binds to `127.0.0.1` unless you change `DESKTOP_VNC_BIND`.
 
 ## Using a different workspace directory
 
@@ -92,7 +98,7 @@ WORKSPACE_MOUNT=/your/project/path docker compose up -d
 ./enter-workspace.sh
 ```
 
-Files created under `/workspace` will be written with the same UID/GID as the mounted host directory whenever possible.
+Files created under `~/workspace` will be written with the same UID/GID as the host directory whenever possible.
 
 ## Using a prebuilt image
 
@@ -120,7 +126,17 @@ To make Compose use a published image, set this in `.env`:
 
 ```bash
 IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace:latest
-DESKTOP_IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
+DOCKERFILE=Dockerfile
+DESKTOP_MODE=0
+```
+
+Or switch the same `workspace` service to the desktop image:
+
+```bash
+IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
+DOCKERFILE=Dockerfile.desktop
+DESKTOP_MODE=1
+VNC_PASSWORD=replace-this-before-use
 ```
 
 Then pull and start:
@@ -184,7 +200,7 @@ It also supports manual runs through `workflow_dispatch`.
 | --- | --- |
 | `Dockerfile` | Builds the image |
 | `Dockerfile.desktop` | Builds the preinstalled desktop/VNC image |
-| `docker-compose.yml` | Runs the workspace container |
+| `docker-compose.yml` | Runs the single workspace container and mounts the host project at `~/workspace` |
 | `entrypoint.sh` | Sets up kill switch, route bypass, resolver, and UID/GID mapping |
 | `desktop-session.sh` | Starts the XFCE session inside TigerVNC |
 | `enter-workspace.sh` | Enters the container as the mapped workspace user |
