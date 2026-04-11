@@ -1,5 +1,7 @@
 # safe-proxy-workspace
 
+[中文说明](README.zh-CN.md)
+
 A fail-closed Docker workspace powered by Mihomo. Traffic inside the container either goes through your SS relay chain or gets blocked.
 
 ## What this project does
