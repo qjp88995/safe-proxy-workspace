@@ -5,6 +5,7 @@ ARG TARGETARCH=amd64
 
 # 1. 安装基础工具
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash-completion \
     ca-certificates \
     curl \
     git \
