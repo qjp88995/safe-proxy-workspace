@@ -51,10 +51,38 @@ docker compose up -d
 ./enter-workspace.sh
 ```
 
+这个辅助脚本会保留映射后用户的 `HOME` 和 shell 环境，因此交互式 Bash 的彩色提示符与颜色输出会正常工作。
+
 6. 检查出口 IP：
 
 ```bash
 docker compose exec workspace curl -4 --max-time 15 https://ifconfig.me
+```
+
+## 桌面 / VNC 预装版
+
+仓库现在还提供一个内置 XFCE 和 TigerVNC 的桌面镜像。
+
+1. 在 `.env` 中设置 VNC 密码：
+
+```bash
+VNC_PASSWORD=replace-this-before-use
+```
+
+2. 启动桌面服务：
+
+```bash
+docker compose --profile desktop up -d workspace-desktop
+```
+
+3. 默认用 VNC 客户端连接 `127.0.0.1:5901`。
+
+默认会把端口只绑定到宿主机 `127.0.0.1`，除非你主动修改 `DESKTOP_VNC_BIND`，否则不会直接暴露到所有网卡。
+
+如果要进入这个桌面容器里的 shell：
+
+```bash
+COMPOSE_SERVICE=workspace-desktop ./enter-workspace.sh
 ```
 
 ## 挂载其他工作目录
@@ -82,10 +110,17 @@ docker pull ghcr.io/qjp88995/safe-proxy-workspace:v0.0.1
 docker pull ghcr.io/qjp88995/safe-proxy-workspace:latest
 ```
 
+桌面 / VNC 版本镜像：
+
+```bash
+docker pull ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
+```
+
 如果希望 Compose 直接使用远程镜像，可以在 `.env` 中设置：
 
 ```bash
 IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace:latest
+DESKTOP_IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
 ```
 
 然后执行：
@@ -148,8 +183,10 @@ docker compose down
 | 文件 | 用途 |
 | --- | --- |
 | `Dockerfile` | 构建镜像 |
+| `Dockerfile.desktop` | 构建预装桌面 / VNC 镜像 |
 | `docker-compose.yml` | 运行工作容器 |
 | `entrypoint.sh` | 配置 kill switch、策略路由、DNS 和 UID/GID 映射 |
+| `desktop-session.sh` | 在 TigerVNC 中启动 XFCE 会话 |
 | `enter-workspace.sh` | 以映射后的工作用户进入容器 |
 | `config.example.yaml` | Mihomo 配置样例 |
 | `.env.example` | Compose 环境变量样例 |

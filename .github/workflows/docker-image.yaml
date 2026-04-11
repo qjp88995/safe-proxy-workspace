@@ -12,6 +12,15 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: workspace
+            dockerfile: ./Dockerfile
+            image_suffix: ""
+          - name: desktop
+            dockerfile: ./Dockerfile.desktop
+            image_suffix: -desktop
     permissions:
       contents: read
       packages: write
@@ -27,7 +36,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}${{ matrix.image_suffix }}
           tags: |
             type=ref,event=tag
             type=sha
@@ -44,7 +53,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

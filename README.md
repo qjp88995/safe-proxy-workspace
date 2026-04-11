@@ -51,10 +51,38 @@ docker compose up -d
 ./enter-workspace.sh
 ```
 
+This helper preserves the mapped user's `HOME` and shell environment, so the interactive Bash prompt and color output work as expected.
+
 6. Check the exit IP:
 
 ```bash
 docker compose exec workspace curl -4 --max-time 15 https://ifconfig.me
+```
+
+## Desktop/VNC variant
+
+The repository also ships a preinstalled desktop image with XFCE and TigerVNC.
+
+1. Set a VNC password in `.env`:
+
+```bash
+VNC_PASSWORD=replace-this-before-use
+```
+
+2. Start the desktop service:
+
+```bash
+docker compose --profile desktop up -d workspace-desktop
+```
+
+3. Connect your VNC client to `127.0.0.1:5901` by default.
+
+The published port binds to `127.0.0.1` by default so the VNC server is not exposed on all host interfaces unless you change `DESKTOP_VNC_BIND`.
+
+To open a shell inside the desktop container:
+
+```bash
+COMPOSE_SERVICE=workspace-desktop ./enter-workspace.sh
 ```
 
 ## Using a different workspace directory
@@ -82,10 +110,17 @@ Or use the latest published image:
 docker pull ghcr.io/qjp88995/safe-proxy-workspace:latest
 ```
 
+Desktop/VNC image:
+
+```bash
+docker pull ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
+```
+
 To make Compose use a published image, set this in `.env`:
 
 ```bash
 IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace:latest
+DESKTOP_IMAGE_NAME=ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest
 ```
 
 Then pull and start:
@@ -148,8 +183,10 @@ It also supports manual runs through `workflow_dispatch`.
 | File | Purpose |
 | --- | --- |
 | `Dockerfile` | Builds the image |
+| `Dockerfile.desktop` | Builds the preinstalled desktop/VNC image |
 | `docker-compose.yml` | Runs the workspace container |
 | `entrypoint.sh` | Sets up kill switch, route bypass, resolver, and UID/GID mapping |
+| `desktop-session.sh` | Starts the XFCE session inside TigerVNC |
 | `enter-workspace.sh` | Enters the container as the mapped workspace user |
 | `config.example.yaml` | Public Mihomo config template |
 | `.env.example` | Public Compose env template |

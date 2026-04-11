@@ -1,0 +1,38 @@
+FROM ubuntu:24.04
+
+ARG MIHOMO_VERSION=v1.18.1
+ARG TARGETARCH=amd64
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    dbus-x11 \
+    git \
+    gzip \
+    iproute2 \
+    iptables \
+    tigervnc-standalone-server \
+    tigervnc-tools \
+    vim \
+    wget \
+    xfce4 \
+    xfce4-terminal \
+    xauth \
+    xterm \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN wget -O /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/${MIHOMO_VERSION}/mihomo-linux-${TARGETARCH}-${MIHOMO_VERSION}.gz" \
+    && gunzip /tmp/mihomo.gz \
+    && mv /tmp/mihomo /usr/local/bin/mihomo \
+    && chmod +x /usr/local/bin/mihomo
+
+RUN mkdir -p /root/.config/mihomo /var/log
+COPY config.example.yaml /root/.config/mihomo/config.yaml
+COPY entrypoint.sh /entrypoint.sh
+COPY desktop-session.sh /usr/local/bin/start-vnc-session
+
+RUN chmod +x /entrypoint.sh /usr/local/bin/start-vnc-session
+
+EXPOSE 5901
+
+ENTRYPOINT ["/entrypoint.sh"]

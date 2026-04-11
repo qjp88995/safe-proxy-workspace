@@ -10,6 +10,7 @@ WORKSPACE_USER="${WORKSPACE_USER:-workspace}"
 WORKSPACE_UID="${WORKSPACE_UID:-}"
 WORKSPACE_GID="${WORKSPACE_GID:-}"
 WORKSPACE_MODE="${WORKSPACE_MODE:-0}"
+DESKTOP_MODE="${DESKTOP_MODE:-0}"
 
 configure_resolver() {
   printf 'nameserver 127.0.0.1\noptions ndots:0\n' > /etc/resolv.conf
@@ -145,6 +146,11 @@ if [ "${1:-}" = "bash" ] || [ "${1:-}" = "/bin/bash" ]; then
   echo "Current Public IP:"
   curl -fsS --connect-timeout 5 https://ifconfig.me || echo "Wait, connecting..."
   exec_as_workspace_user "$@"
+fi
+
+if [ "${DESKTOP_MODE}" = "1" ]; then
+  start_mihomo_background
+  exec_as_workspace_user /usr/local/bin/start-vnc-session
 fi
 
 if [ "${WORKSPACE_MODE}" = "1" ]; then
