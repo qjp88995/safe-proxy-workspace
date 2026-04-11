@@ -56,6 +56,8 @@ docker compose up -d
 
 在容器里，映射出来的工作用户拥有正常的 home 目录 `/home/$WORKSPACE_USER`，而宿主机工作目录会挂载到 `~/workspace`。如果你想修改容器内用户名和 home 目录名，只需要调整 `.env` 里的 `WORKSPACE_USER`。这个用户可以像普通 Ubuntu 用户一样使用免密码 `sudo` 安装软件和管理自己的工具。
 
+常用软件安装方式见[常用软件安装](docs/software-installation.zh-CN.md)。
+
 6. 检查出口 IP：
 
 ```bash
