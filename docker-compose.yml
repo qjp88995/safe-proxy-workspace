@@ -17,17 +17,21 @@ services:
       WORKSPACE_HOME: /home/${WORKSPACE_USER:-workspace}
       WORKSPACE_DIR: /home/${WORKSPACE_USER:-workspace}/workspace
       WORKSPACE_MODE: "1"
+      # Desktop/VNC settings. In CLI-only mode, these entries can be commented out.
       DESKTOP_MODE: ${DESKTOP_MODE:-0}
       VNC_PASSWORD: ${VNC_PASSWORD:-}
       VNC_DISPLAY: "1"
       VNC_GEOMETRY: ${VNC_GEOMETRY:-1440x900}
       VNC_DEPTH: ${VNC_DEPTH:-24}
       VNC_LOCALHOST: "no"
+    # Desktop/VNC only. In CLI-only mode, this port mapping can be commented out.
     ports:
       - "${DESKTOP_VNC_BIND:-127.0.0.1}:${DESKTOP_VNC_PORT:-5901}:5901"
+    # Desktop/VNC only. Keeps Chrome stable in VNC sessions; can be commented out in CLI-only mode.
     shm_size: ${DESKTOP_SHM_SIZE:-2gb}
     cap_add:
       - NET_ADMIN
+      # Desktop/VNC only. Lets Chrome use its Linux sandbox inside Docker; can be commented out in CLI-only mode.
       - SYS_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
