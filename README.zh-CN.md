@@ -83,6 +83,8 @@ DESKTOP_MODE=1
 VNC_PASSWORD=replace-this-before-use
 ```
 
+桌面容器还会额外添加 `SYS_ADMIN`，这样 Google Chrome 这类图形浏览器在 Docker 里也能启用 Linux sandbox。若你之前是用 `--no-sandbox` 启动 Chrome，重建容器后请把这个参数去掉。
+
 然后像平时一样启动同一个服务：
 
 ```bash
@@ -145,6 +147,8 @@ VNC_PASSWORD=replace-this-before-use
 docker compose pull
 docker compose up -d
 ```
+
+如果你会在桌面模式里使用 Google Chrome，更新后请重建容器，这样浏览器就能尽量以启用 sandbox 的方式启动，不再弹出 `--no-sandbox` 的提示。
 
 ## 安全模型
 

@@ -83,6 +83,8 @@ DESKTOP_MODE=1
 VNC_PASSWORD=replace-this-before-use
 ```
 
+The desktop container also adds `SYS_ADMIN` so GUI browsers such as Google Chrome can use their Linux sandbox inside Docker. If you previously launched Chrome with `--no-sandbox`, remove that flag after recreating the container.
+
 Then start the same service as usual:
 
 ```bash
@@ -145,6 +147,8 @@ Then pull and start:
 docker compose pull
 docker compose up -d
 ```
+
+If you use Google Chrome in desktop mode, recreate the container after updating so the browser can start with its sandbox enabled instead of showing the `--no-sandbox` warning.
 
 ## Security model
 

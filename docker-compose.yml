@@ -27,6 +27,7 @@ services:
       - "${DESKTOP_VNC_BIND:-127.0.0.1}:${DESKTOP_VNC_PORT:-5901}:5901"
     cap_add:
       - NET_ADMIN
+      - SYS_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
     sysctls:
