@@ -42,5 +42,6 @@ exec docker compose exec \
   -e HOME="${workspace_home}" \
   -e USER="${workspace_user}" \
   -e LOGNAME="${workspace_user}" \
+  -e SHELL="/bin/bash" \
   -e TERM="${TERM:-xterm-256color}" \
   "${service}" "${shell_command[@]}"

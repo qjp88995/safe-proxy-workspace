@@ -100,6 +100,7 @@ exec_as_workspace_user() {
     HOME="${WORKSPACE_RUNTIME_HOME}" \
     USER="${WORKSPACE_RUNTIME_USER}" \
     LOGNAME="${WORKSPACE_RUNTIME_USER}" \
+    SHELL="/bin/bash" \
     "$@"
 }
 
