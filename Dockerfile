@@ -2,6 +2,7 @@ FROM ubuntu:24.04
 
 ARG MIHOMO_VERSION=v1.18.1
 ARG TARGETARCH=amd64
+ARG DEBIAN_FRONTEND=noninteractive
 
 # 1. 安装基础工具
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,6 +28,7 @@ RUN wget -O /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/downloa
 RUN mkdir -p /root/.config/mihomo /var/log
 COPY config.example.yaml /root/.config/mihomo/config.yaml
 COPY entrypoint.sh /entrypoint.sh
+COPY skel/ /etc/skel/
 COPY workspace-shell.sh /etc/profile.d/workspace-shell.sh
 
 RUN chmod +x /entrypoint.sh

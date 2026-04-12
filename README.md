@@ -11,6 +11,7 @@ A fail-closed Docker workspace powered by Mihomo. Traffic inside the container e
 - Only allows direct connections to your proxy endpoints
 - Blocks all other outbound traffic if the proxy chain is unavailable
 - Gives the user a normal home directory while mounting the host workspace at `~/workspace`
+- Persists the mapped user's home directory in a Docker volume across container rebuilds
 
 ## Requirements
 
@@ -54,7 +55,7 @@ docker compose up -d
 
 This helper preserves the mapped user's `HOME` and shell environment, starts inside `~/workspace`, and keeps the interactive Bash prompt and color output working as expected.
 
-Inside the container, the mapped user gets a normal home directory at `/home/$WORKSPACE_USER`, and the host project is mounted at `~/workspace`. Change `WORKSPACE_USER` in `.env` if you want a different username and home directory name. The mapped user can use passwordless `sudo` to install packages and manage personal tools like on a regular Ubuntu workstation.
+Inside the container, the mapped user gets a normal home directory at `/home/$WORKSPACE_USER`, and the host project is mounted at `~/workspace`. The home directory is stored in the Docker volume `workspace_home`, so shell dotfiles, browser profiles, and user-level tools survive `docker compose up --build` and container recreation. Change `WORKSPACE_USER` in `.env` if you want a different username and home directory name. The mapped user can use passwordless `sudo` to install packages and manage personal tools like on a regular Ubuntu workstation.
 
 For package updates and common software installation steps, see [Installing common software](docs/software-installation.md).
 
@@ -87,6 +88,7 @@ DESKTOP_SHM_SIZE=2gb
 ```
 
 The desktop container also adds `SYS_ADMIN` so GUI browsers such as Google Chrome can use their Linux sandbox inside Docker. If you previously launched Chrome with `--no-sandbox`, remove that flag after recreating the container.
+On `amd64`, the desktop image also preinstalls Google Chrome. Because the workspace home directory is persisted, Chrome keeps its profile data and login state across container rebuilds.
 
 Then start the same service as usual:
 
@@ -107,9 +109,32 @@ WORKSPACE_MOUNT=/your/project/path docker compose up -d
 
 Files created under `~/workspace` will be written with the same UID/GID as the host directory whenever possible.
 
+## Persistent home directory
+
+The mapped user's home directory is stored in the Docker volume `workspace_home`.
+
+That keeps these across rebuilds and container replacement:
+
+- `~/.bashrc`, `~/.profile`, and related shell startup files
+- Browser data such as `~/.config/google-chrome`
+- User-level tool state such as `~/.npm`, `~/.local`, and `~/.config`
+
+To remove that persisted state and start from a clean home directory:
+
+```bash
+docker compose down -v
+```
+
 ## Using a prebuilt image
 
 Tagged releases are published to GHCR.
+
+If you want a runtime-only setup for end users, use the files under [runtime](/home/calf/projects/safe-proxy-workspace/runtime/README.md:1). That package only needs these local files:
+
+- `runtime/docker-compose.yml`
+- `.env`
+- `config.yaml`
+- `runtime/enter-workspace.sh`
 
 Pull a release image:
 
@@ -149,11 +174,12 @@ VNC_PASSWORD=replace-this-before-use
 Then pull and start:
 
 ```bash
+cd runtime
 docker compose pull
 docker compose up -d
 ```
 
-If you use Google Chrome in desktop mode, recreate the container after updating so the browser can start with its sandbox enabled instead of showing the `--no-sandbox` warning.
+If you use Google Chrome in desktop mode, recreate the container after updating so the browser can start with its sandbox enabled instead of showing the `--no-sandbox` warning. On `amd64`, the desktop image already includes Chrome.
 
 ## Security model
 
@@ -210,9 +236,11 @@ It also supports manual runs through `workflow_dispatch`.
 | `Dockerfile` | Builds the image |
 | `Dockerfile.desktop` | Builds the preinstalled desktop/VNC image |
 | `docker-compose.yml` | Runs the single workspace container and mounts the host project at `~/workspace` |
+| `runtime/` | Runtime-only package for published images |
 | `entrypoint.sh` | Sets up kill switch, route bypass, resolver, and UID/GID mapping |
 | `desktop-session.sh` | Starts the XFCE session inside TigerVNC |
 | `enter-workspace.sh` | Enters the container as the mapped workspace user |
+| `skel/` | Default shell startup files copied into a new workspace home |
 | `config.example.yaml` | Public Mihomo config template |
 | `.env.example` | Public Compose env template |
 

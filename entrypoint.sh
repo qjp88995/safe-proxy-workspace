@@ -17,6 +17,27 @@ configure_resolver() {
   printf 'nameserver 127.0.0.1\noptions ndots:0\n' > /etc/resolv.conf
 }
 
+initialize_workspace_home() {
+  local skeleton_file home_entry workspace_basename
+
+  mkdir -p "${WORKSPACE_HOME}" "${WORKSPACE_DIR}"
+
+  for skeleton_file in /etc/skel/.bashrc /etc/skel/.profile /etc/skel/.bash_profile /etc/skel/.bash_logout; do
+    [ -f "${skeleton_file}" ] || continue
+    home_entry="${WORKSPACE_HOME}/$(basename "${skeleton_file}")"
+    if [ ! -e "${home_entry}" ]; then
+      cp "${skeleton_file}" "${home_entry}"
+    fi
+  done
+
+  chown "${WORKSPACE_UID}:${WORKSPACE_GID}" "${WORKSPACE_HOME}"
+
+  workspace_basename="$(basename "${WORKSPACE_DIR}")"
+  while IFS= read -r home_entry; do
+    chown -R "${WORKSPACE_UID}:${WORKSPACE_GID}" "${home_entry}"
+  done < <(find "${WORKSPACE_HOME}" -mindepth 1 -maxdepth 1 ! -name "${workspace_basename}" -print)
+}
+
 configure_workspace_user() {
   local detected_uid detected_gid group_name user_name current_group_name
 
@@ -76,8 +97,7 @@ configure_workspace_user() {
     usermod -aG sudo "${user_name}"
   fi
 
-  mkdir -p "${WORKSPACE_HOME}" "${WORKSPACE_DIR}"
-  chown "${WORKSPACE_UID}:${WORKSPACE_GID}" "${WORKSPACE_HOME}"
+  initialize_workspace_home
   export HOME="${WORKSPACE_HOME}"
   export WORKSPACE_RUNTIME_USER="${user_name}"
   export WORKSPACE_RUNTIME_HOME="${WORKSPACE_HOME}"
