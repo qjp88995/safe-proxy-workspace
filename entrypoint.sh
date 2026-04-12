@@ -18,17 +18,45 @@ configure_resolver() {
 }
 
 initialize_workspace_home() {
-  local skeleton_file home_entry workspace_basename
+  local skeleton_file home_entry workspace_basename bashrc_managed_block
 
   mkdir -p "${WORKSPACE_HOME}" "${WORKSPACE_DIR}"
 
-  for skeleton_file in /etc/skel/.bashrc /etc/skel/.profile /etc/skel/.bash_profile /etc/skel/.bash_logout; do
+  for skeleton_file in /etc/skel/.bashrc /etc/skel/.profile /etc/skel/.bash_profile /etc/skel/.bash_logout /etc/skel/.hushlogin; do
     [ -f "${skeleton_file}" ] || continue
     home_entry="${WORKSPACE_HOME}/$(basename "${skeleton_file}")"
     if [ ! -e "${home_entry}" ]; then
       cp "${skeleton_file}" "${home_entry}"
     fi
   done
+
+  bashrc_managed_block='
+# >>> safe-proxy-workspace shell >>>
+if [ -n "${PS1:-}" ]; then
+  if command -v dircolors >/dev/null 2>&1; then
+    eval "$(dircolors -b 2>/dev/null || true)"
+    alias ls='"'"'ls --color=auto'"'"'
+    alias grep='"'"'grep --color=auto'"'"'
+    alias fgrep='"'"'fgrep --color=auto'"'"'
+    alias egrep='"'"'egrep --color=auto'"'"'
+  fi
+
+  case "${TERM:-}" in
+    *color*|xterm*|screen*|tmux*|rxvt*|linux*)
+      PS1='"'"'${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '"'"'
+      ;;
+    *)
+      PS1='"'"'${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '"'"'
+      ;;
+  esac
+fi
+# <<< safe-proxy-workspace shell <<<
+'
+
+  home_entry="${WORKSPACE_HOME}/.bashrc"
+  if [ -f "${home_entry}" ] && ! grep -Fq '# >>> safe-proxy-workspace shell >>>' "${home_entry}"; then
+    printf '%s\n' "${bashrc_managed_block}" >> "${home_entry}"
+  fi
 
   chown "${WORKSPACE_UID}:${WORKSPACE_GID}" "${WORKSPACE_HOME}"
 

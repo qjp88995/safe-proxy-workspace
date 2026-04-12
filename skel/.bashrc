@@ -16,3 +16,18 @@ if command -v dircolors >/dev/null 2>&1; then
   alias fgrep='fgrep --color=auto'
   alias egrep='egrep --color=auto'
 fi
+
+color_prompt=
+case "${TERM:-}" in
+  *color*|xterm*|screen*|tmux*|rxvt*|linux*)
+    color_prompt=yes
+    ;;
+esac
+
+if [ "${color_prompt}" = yes ]; then
+  PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+  PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+
+unset color_prompt

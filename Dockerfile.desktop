@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gzip \
     iproute2 \
     iptables \
+    locales \
     sudo \
     tigervnc-standalone-server \
     tigervnc-tools \
@@ -24,6 +25,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xauth \
     xterm \
     && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8 \
+    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 RUN if [ "${TARGETARCH}" = "amd64" ]; then \
       install -d -m 0755 /etc/apt/keyrings \
@@ -48,6 +52,9 @@ COPY entrypoint.sh /entrypoint.sh
 COPY skel/ /etc/skel/
 COPY desktop-session.sh /usr/local/bin/start-vnc-session
 COPY workspace-shell.sh /etc/profile.d/workspace-shell.sh
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
 RUN chmod +x /entrypoint.sh /usr/local/bin/start-vnc-session
 RUN chmod 644 /etc/profile.d/workspace-shell.sh \

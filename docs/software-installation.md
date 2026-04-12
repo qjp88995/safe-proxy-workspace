@@ -21,38 +21,22 @@ sudo dpkg-reconfigure tzdata
 
 The mapped user's home directory is persisted in the Docker volume `workspace_home`, so changes under `~` survive container rebuilds. System packages installed with `sudo apt-get install ...` still belong to the image filesystem; if you need them every time, prefer baking them into the relevant Dockerfile.
 
-## Fix UTF-8 Locale In Desktop Terminals
+## UTF-8 Locale
 
-If a terminal opened inside the VNC desktop reports `ANSI_X3.4-1968` or `POSIX`, it is running in an ASCII locale instead of UTF-8. TUI applications may then render Chinese text or emoji as garbled characters.
+The images now generate and enable `en_US.UTF-8` at the system level by default. A terminal opened inside the VNC desktop should therefore already report UTF-8.
 
-Check the current locale:
+Verify it with:
 
 ```bash
 locale
 python3 -c 'import locale; print(locale.getpreferredencoding(False))'
 ```
 
-Install locales and generate a UTF-8 locale if needed:
+If you still see `ANSI_X3.4-1968` or `POSIX`, that usually means an older container is still running and needs to be recreated:
 
 ```bash
-sudo apt-get install -y locales
-sudo locale-gen en_US.UTF-8
+docker compose up -d --build
 ```
-
-For the current shell, test with:
-
-```bash
-export LANG=C.UTF-8
-export LC_ALL=C.UTF-8
-```
-
-To make it persistent for the workspace user without disabling the default colored prompt from `./enter-workspace.sh`, write it to `~/.profile` instead of `~/.bashrc`:
-
-```bash
-printf '\nexport LANG=C.UTF-8\nexport LC_ALL=C.UTF-8\n' >> ~/.profile
-```
-
-Then open a new terminal in the VNC desktop and confirm that the preferred encoding is `UTF-8`.
 
 ## Google Chrome
 

@@ -13,10 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gzip \
     iproute2 \
     iptables \
+    locales \
     sudo \
     vim \
     wget \
     && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8 \
+    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 # 2. 下载并安装 mihomo (Clash Meta)
 RUN wget -O /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/${MIHOMO_VERSION}/mihomo-linux-${TARGETARCH}-${MIHOMO_VERSION}.gz" \
@@ -30,6 +34,9 @@ COPY config.example.yaml /root/.config/mihomo/config.yaml
 COPY entrypoint.sh /entrypoint.sh
 COPY skel/ /etc/skel/
 COPY workspace-shell.sh /etc/profile.d/workspace-shell.sh
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
 RUN chmod +x /entrypoint.sh
 RUN chmod 644 /etc/profile.d/workspace-shell.sh \
