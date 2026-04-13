@@ -38,7 +38,6 @@ cp config.example.yaml config.yaml
 3. Edit `.env`:
 
 - Set `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP` to the same proxy `IP:PORT` pairs from `config.yaml`
-- Leave `DIRECT_ALLOWLIST_SUBNETS` empty unless you need to allow extra private subnets beyond the Docker networks attached to `workspace`
 - Set `WORKSPACE_MOUNT` if you want to mount a different host directory
 - Set `WORKSPACE_USER` if you want a different in-container username and home path
 
@@ -111,53 +110,6 @@ WORKSPACE_MOUNT=/your/project/path docker compose up -d
 ```
 
 Files created under `~/workspace` will be written with the same UID/GID as the host directory whenever possible.
-
-## Accessing other Docker services
-
-`workspace` can now reach other containers on the same Docker user-defined network by service name such as `mysql:3306`.
-
-- Keep `workspace` and the target service on the same user-defined Docker network
-- Docker-attached IPv4 subnets are detected automatically and allowed to bypass Mihomo
-- Docker's embedded DNS is preserved so service names such as `mysql` continue to resolve inside the container
-- If you need additional private CIDRs beyond the attached Docker networks, add them to `DIRECT_ALLOWLIST_SUBNETS` as a comma-separated list
-
-Minimal example:
-
-```yaml
-services:
-  workspace:
-    networks:
-      - backend
-
-  postgres:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: app
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app-dev-password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
-
-volumes:
-  postgres_data:
-
-networks:
-  backend:
-    driver: bridge
-```
-
-Then connect from code inside `workspace` with:
-
-```text
-postgresql://app:app-dev-password@postgres:5432/app
-```
-
-The network name `backend` is only an example. The hostname comes from the service name `postgres`, so any user-defined network name works as long as both services join the same network.
-
-This only opens directly attached private networks. Internet traffic still follows the fail-closed Mihomo path.
 
 ## Persistent home directory
 
@@ -236,7 +188,6 @@ If you use Google Chrome in desktop mode, recreate the container after updating 
 This project is designed to be fail-closed:
 
 - Proxy endpoints themselves may connect directly
-- Directly attached Docker private subnets may connect directly
 - All other outbound traffic must go through the `Mihomo` TUN interface
 - If the relay chain stops working, the container loses external connectivity instead of falling back to the host's real IP
 - IPv6 is disabled to reduce leak paths

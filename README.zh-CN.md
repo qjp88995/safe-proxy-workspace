@@ -38,7 +38,6 @@ cp config.example.yaml config.yaml
 3. 编辑 `.env`：
 
 - 把 `DIRECT_ALLOWLIST_TCP` 和 `DIRECT_ALLOWLIST_UDP` 设置成与 `config.yaml` 中相同的代理 `IP:PORT`
-- 除非你还要额外放行非附加 Docker 网络的私有网段，否则保持 `DIRECT_ALLOWLIST_SUBNETS` 为空
 - 如果要挂载别的工作目录，修改 `WORKSPACE_MOUNT`
 - 如果想修改容器内用户名和 home 路径名，设置 `WORKSPACE_USER`
 
@@ -111,53 +110,6 @@ WORKSPACE_MOUNT=/your/project/path docker compose up -d
 ```
 
 在 `~/workspace` 下创建的文件会尽量使用与宿主机目录一致的 UID/GID。
-
-## 访问其他 Docker 服务
-
-`workspace` 现在可以通过服务名访问同一个 Docker 用户自定义网络中的其他容器，例如 `mysql:3306`。
-
-- 让 `workspace` 和目标服务加入同一个用户自定义 Docker 网络
-- 容器已加入的 Docker IPv4 子网会自动识别，并作为直连网段绕过 Mihomo
-- 会保留 Docker 内置 DNS，因此 `mysql` 这类服务名可以继续在容器内解析
-- 如果还需要放行附加 Docker 网络之外的私有网段，可以把 CIDR 以逗号分隔写到 `DIRECT_ALLOWLIST_SUBNETS`
-
-最小示例：
-
-```yaml
-services:
-  workspace:
-    networks:
-      - backend
-
-  postgres:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: app
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app-dev-password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
-
-volumes:
-  postgres_data:
-
-networks:
-  backend:
-    driver: bridge
-```
-
-然后在 `workspace` 容器内的应用中这样连接：
-
-```text
-postgresql://app:app-dev-password@postgres:5432/app
-```
-
-这里的网络名 `backend` 只是示例。真正作为主机名使用的是 service 名 `postgres`，所以网络名可以自定义，只要两个服务加入同一个用户自定义网络即可。
-
-这里只会放行当前已附加的私有 Docker 网络。互联网流量仍然保持 fail-closed，并继续走 Mihomo。
 
 ## 持久化 home 目录
 
@@ -236,7 +188,6 @@ docker compose up -d
 这个项目的目标是 fail-closed：
 
 - 代理节点本身允许直连
-- 当前容器已附加的 Docker 私有子网允许直连
 - 其他所有出站流量都必须经过 `Mihomo` TUN
 - 代理链失效时，容器会失去外网能力，而不是回落到宿主机真实 IP
 - 默认禁用 IPv6，以减少泄漏路径

@@ -5,7 +5,6 @@ MIHOMO_CONFIG_DIR="${MIHOMO_CONFIG_DIR:-/root/.config/mihomo}"
 TUN_DEVICE="${TUN_DEVICE:-Mihomo}"
 DIRECT_ALLOWLIST_TCP="${DIRECT_ALLOWLIST_TCP:-}"
 DIRECT_ALLOWLIST_UDP="${DIRECT_ALLOWLIST_UDP:-}"
-DIRECT_ALLOWLIST_SUBNETS="${DIRECT_ALLOWLIST_SUBNETS:-}"
 WORKSPACE_USER="${WORKSPACE_USER:-workspace}"
 WORKSPACE_HOME="${WORKSPACE_HOME:-/home/${WORKSPACE_USER}}"
 WORKSPACE_DIR="${WORKSPACE_DIR:-${WORKSPACE_HOME}/workspace}"
@@ -15,60 +14,7 @@ WORKSPACE_MODE="${WORKSPACE_MODE:-0}"
 DESKTOP_MODE="${DESKTOP_MODE:-0}"
 
 configure_resolver() {
-  local nameserver
-  local -a docker_nameservers=()
-
-  while IFS= read -r nameserver; do
-    [ -n "${nameserver}" ] || continue
-    docker_nameservers+=("${nameserver}")
-  done < <(awk '/^nameserver / { print $2 }' /etc/resolv.conf)
-
-  : > /etc/resolv.conf
-  if [ "${#docker_nameservers[@]}" -gt 0 ]; then
-    for nameserver in "${docker_nameservers[@]}"; do
-      printf 'nameserver %s\n' "${nameserver}" >> /etc/resolv.conf
-    done
-  fi
-
-  if ! printf '%s\n' "${docker_nameservers[@]:-}" | grep -qx '127.0.0.1'; then
-    printf 'nameserver 127.0.0.1\n' >> /etc/resolv.conf
-  fi
-
-  printf 'options ndots:0\n' >> /etc/resolv.conf
-}
-
-emit_direct_subnets() {
-  local subnet
-
-  if [ -n "${DIRECT_ALLOWLIST_SUBNETS}" ]; then
-    IFS=',' read -ra configured_subnets <<< "${DIRECT_ALLOWLIST_SUBNETS}"
-    for subnet in "${configured_subnets[@]}"; do
-      [ -n "${subnet}" ] || continue
-      printf '%s\n' "${subnet}"
-    done
-  fi
-
-  ip -o -4 route show scope link | awk -v tun_device="${TUN_DEVICE}" '
-    {
-      subnet = $1
-      dev = ""
-      for (i = 1; i <= NF; i++) {
-        if ($i == "dev" && (i + 1) <= NF) {
-          dev = $(i + 1)
-        }
-      }
-
-      if (dev == "" || dev == "lo" || dev == tun_device) {
-        next
-      }
-
-      if (subnet == "127.0.0.0/8" || subnet == "169.254.0.0/16") {
-        next
-      }
-
-      print subnet
-    }
-  ' | sort -u
+  printf 'nameserver 127.0.0.1\noptions ndots:0\n' > /etc/resolv.conf
 }
 
 initialize_workspace_home() {
@@ -207,18 +153,11 @@ exec_as_workspace_user() {
 }
 
 apply_killswitch() {
-  local subnet
-
   iptables -F OUTPUT
   iptables -P OUTPUT DROP
   iptables -A OUTPUT -o lo -j ACCEPT
   iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   iptables -A OUTPUT -o "${TUN_DEVICE}" -j ACCEPT
-
-  while IFS= read -r subnet; do
-    [ -n "${subnet}" ] || continue
-    iptables -A OUTPUT -d "${subnet}" -j ACCEPT
-  done < <(emit_direct_subnets)
 
   if [ -n "${DIRECT_ALLOWLIST_TCP}" ]; then
     IFS=',' read -ra tcp_endpoints <<< "${DIRECT_ALLOWLIST_TCP}"
@@ -241,15 +180,7 @@ apply_killswitch() {
 
 apply_route_bypass() {
   local pref=100
-  local endpoint host subnet
-
-  while IFS= read -r subnet; do
-    [ -n "${subnet}" ] || continue
-    if ! ip -4 rule show | grep -q "to ${subnet} lookup main"; then
-      ip -4 rule add pref "${pref}" to "${subnet}" lookup main
-      pref=$((pref + 1))
-    fi
-  done < <(emit_direct_subnets)
+  local endpoint host
 
   for endpoint_list in "${DIRECT_ALLOWLIST_TCP}" "${DIRECT_ALLOWLIST_UDP}"; do
     [ -n "${endpoint_list}" ] || continue

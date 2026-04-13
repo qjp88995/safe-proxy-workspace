@@ -26,7 +26,6 @@ mkdir -p logs
 - Set `WORKSPACE_MOUNT` to an absolute host path
   If you leave it unset, Compose defaults to `./workspace` under this directory.
 - Set `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP` to the same proxy endpoints as `config.yaml`
-- Leave `DIRECT_ALLOWLIST_SUBNETS` empty unless you need extra private CIDRs beyond the Docker networks attached to `workspace`
 - For desktop mode, set `VNC_PASSWORD`
 
 3. Edit `config.yaml`:
@@ -51,9 +50,3 @@ docker compose up -d
 Desktop mode uses `ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest` by
 default. Switch to `ghcr.io/qjp88995/safe-proxy-workspace:latest` and set
 `DESKTOP_MODE=0` if you want the CLI image instead.
-
-To reach another service on the same Docker user-defined network, use the service
-name directly, for example `mysql:3306`. Attached Docker bridge subnets are
-allowed automatically and Docker's embedded DNS remains available inside the
-container. Add `DIRECT_ALLOWLIST_SUBNETS` only when you need extra private CIDRs
-that are not attached to `workspace`.
