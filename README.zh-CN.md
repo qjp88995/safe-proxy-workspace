@@ -61,6 +61,8 @@ CLI 镜像和桌面镜像都会预装 `git` 与 OpenSSH 客户端，所以重建
 
 常用软件安装方式见[常用软件安装](docs/software-installation.zh-CN.md)。
 
+如需添加 PostgreSQL 等共享工作容器网络的伴随服务，见[伴随服务](docs/companion-services.zh-CN.md)。
+
 6. 检查出口 IP：
 
 ```bash

@@ -61,6 +61,8 @@ Both the CLI image and the desktop image preinstall `git` and the OpenSSH client
 
 For package updates and common software installation steps, see [Installing common software](docs/software-installation.md).
 
+To add companion services such as PostgreSQL that share the workspace network, see [Companion services](docs/companion-services.md).
+
 6. Check the exit IP:
 
 ```bash
