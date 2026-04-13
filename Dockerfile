@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iproute2 \
     iptables \
     locales \
+    openssh-client \
     sudo \
     vim \
     wget \

@@ -57,6 +57,8 @@ docker compose up -d
 
 在容器里，映射出来的工作用户拥有正常的 home 目录 `/home/$WORKSPACE_USER`，而宿主机工作目录会挂载到 `~/workspace`。这个 home 目录会持久化到 Docker volume `workspace_home`，所以 shell 配置、浏览器资料和用户级工具在 `docker compose up --build` 或重建容器后仍然保留。如果你想修改容器内用户名和 home 目录名，只需要调整 `.env` 里的 `WORKSPACE_USER`。这个用户可以像普通 Ubuntu 用户一样使用免密码 `sudo` 安装软件和管理自己的工具。
 
+CLI 镜像和桌面镜像都会预装 `git` 与 OpenSSH 客户端，所以重建容器后就可以直接使用 `git clone git@...` 或单独执行 `ssh` 命令。
+
 常用软件安装方式见[常用软件安装](docs/software-installation.zh-CN.md)。
 
 6. 检查出口 IP：

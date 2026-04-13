@@ -57,6 +57,8 @@ This helper preserves the mapped user's `HOME` and shell environment, starts ins
 
 Inside the container, the mapped user gets a normal home directory at `/home/$WORKSPACE_USER`, and the host project is mounted at `~/workspace`. The home directory is stored in the Docker volume `workspace_home`, so shell dotfiles, browser profiles, and user-level tools survive `docker compose up --build` and container recreation. Change `WORKSPACE_USER` in `.env` if you want a different username and home directory name. The mapped user can use passwordless `sudo` to install packages and manage personal tools like on a regular Ubuntu workstation.
 
+Both the CLI image and the desktop image preinstall `git` and the OpenSSH client, so `git clone git@...` and direct `ssh` commands work after you rebuild the container.
+
 For package updates and common software installation steps, see [Installing common software](docs/software-installation.md).
 
 6. Check the exit IP:
