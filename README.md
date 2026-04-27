@@ -129,6 +129,33 @@ To remove that persisted state and start from a clean home directory:
 docker compose down -v
 ```
 
+## Docker-out-of-Docker
+
+Both the CLI and desktop images include the Docker CLI (`docker-ce-cli`, `docker-buildx-plugin`, `docker-compose-plugin`). To manage the host's Docker from inside the workspace:
+
+1. In `.env`, set `DOCKER_GID` to the host's `docker` group GID:
+
+```bash
+DOCKER_GID=996   # getent group docker | cut -d: -f3
+```
+
+2. In `docker-compose.yml`, uncomment the docker socket mount:
+
+```yaml
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```
+
+3. Recreate the container:
+
+```bash
+docker compose up -d
+```
+
+The entrypoint automatically adds the workspace user to the `docker` group. No `sudo` needed — `docker`, `docker compose`, and `docker buildx` work directly.
+
+Note: containers started this way run on the host's Docker daemon, outside the workspace's proxy chain.
+
 ## Using a prebuilt image
 
 Tagged releases are published to GHCR.

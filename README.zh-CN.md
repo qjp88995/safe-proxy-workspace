@@ -129,6 +129,33 @@ WORKSPACE_MOUNT=/your/project/path docker compose up -d
 docker compose down -v
 ```
 
+## Docker-out-of-Docker
+
+CLI 镜像和桌面镜像均已预装 Docker CLI（`docker-ce-cli`、`docker-buildx-plugin`、`docker-compose-plugin`）。在容器内管理宿主机 Docker：
+
+1. 在 `.env` 中，设置 `DOCKER_GID` 为宿主机 `docker` 组的 GID：
+
+```bash
+DOCKER_GID=996   # getent group docker | cut -d: -f3
+```
+
+2. 在 `docker-compose.yml` 中，取消 docker socket 挂载的注释：
+
+```yaml
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```
+
+3. 重建容器：
+
+```bash
+docker compose up -d
+```
+
+entrypoint 会自动将工作用户加入 `docker` 组。无需 `sudo`，直接使用 `docker`、`docker compose` 和 `docker buildx`。
+
+注意：通过这种方式启动的容器运行在宿主机 Docker daemon 上，不受 workspace 代理链管控。
+
 ## 使用预构建镜像
 
 带 tag 的版本会发布到 GHCR。
