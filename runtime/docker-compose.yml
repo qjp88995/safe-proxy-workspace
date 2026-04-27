@@ -14,6 +14,9 @@ services:
       WORKSPACE_HOME: /home/${WORKSPACE_USER:-workspace}
       WORKSPACE_DIR: /home/${WORKSPACE_USER:-workspace}/workspace
       WORKSPACE_MODE: "1"
+      # Docker-out-of-Docker: 宿主机 docker 组 GID。取消注释后，entrypoint.sh 自动将用户加入 docker 组。
+      # 获取方式: getent group docker | cut -d: -f3
+      DOCKER_GID: ${DOCKER_GID:-}
       DESKTOP_MODE: ${DESKTOP_MODE:-1}
       VNC_PASSWORD: ${VNC_PASSWORD:-}
       VNC_DISPLAY: "1"
@@ -37,6 +40,9 @@ services:
       - ./logs:/var/log
       - workspace_home:/home/${WORKSPACE_USER:-workspace}
       - ${WORKSPACE_MOUNT:-./workspace}:/home/${WORKSPACE_USER:-workspace}/workspace
+      # Docker-out-of-Docker: 挂载宿主机 docker socket 以在容器内管理 Docker。
+      # 取消下面这行的注释即可启用。需要同时设置 DOCKER_GID 环境变量。
+      # - /var/run/docker.sock:/var/run/docker.sock
     stdin_open: true
     tty: true
 

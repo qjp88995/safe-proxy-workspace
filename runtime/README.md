@@ -50,3 +50,30 @@ docker compose up -d
 Desktop mode uses `ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest` by
 default. Switch to `ghcr.io/qjp88995/safe-proxy-workspace:latest` and set
 `DESKTOP_MODE=0` if you want the CLI image instead.
+
+## Docker-out-of-Docker
+
+Both images include the Docker CLI. To manage the host's Docker from inside the workspace:
+
+1. In `.env`, set `DOCKER_GID` to the host's `docker` group GID:
+
+```bash
+DOCKER_GID=996   # getent group docker | cut -d: -f3
+```
+
+2. In `docker-compose.yml`, uncomment the docker socket mount:
+
+```yaml
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+```
+
+3. Recreate the container:
+
+```bash
+docker compose up -d
+```
+
+The entrypoint automatically adds the workspace user to the `docker` group.
+
+Note: containers started this way run on the host's Docker daemon, outside the workspace's proxy chain.
