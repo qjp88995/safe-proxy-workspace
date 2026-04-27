@@ -10,6 +10,7 @@ WORKSPACE_HOME="${WORKSPACE_HOME:-/home/${WORKSPACE_USER}}"
 WORKSPACE_DIR="${WORKSPACE_DIR:-${WORKSPACE_HOME}/workspace}"
 WORKSPACE_UID="${WORKSPACE_UID:-}"
 WORKSPACE_GID="${WORKSPACE_GID:-}"
+DOCKER_GID="${DOCKER_GID:-}"
 WORKSPACE_MODE="${WORKSPACE_MODE:-0}"
 DESKTOP_MODE="${DESKTOP_MODE:-0}"
 
@@ -123,6 +124,17 @@ configure_workspace_user() {
 
   if ! id -nG "${user_name}" | tr ' ' '\n' | grep -qx sudo; then
     usermod -aG sudo "${user_name}"
+  fi
+
+  if [ -n "${DOCKER_GID:-}" ]; then
+    docker_group_name="$(getent group "${DOCKER_GID}" | cut -d: -f1 || true)"
+    if [ -z "${docker_group_name}" ]; then
+      docker_group_name="docker"
+      groupadd --gid "${DOCKER_GID}" "${docker_group_name}"
+    fi
+    if ! id -nG "${user_name}" | tr ' ' '\n' | grep -qx "${docker_group_name}"; then
+      usermod -aG "${docker_group_name}" "${user_name}"
+    fi
   fi
 
   initialize_workspace_home
