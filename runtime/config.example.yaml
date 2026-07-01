@@ -8,6 +8,8 @@ tun:
   auto-redirect: true
   strict-route: true
   auto-detect-interface: true
+  # 直连白名单唯一来源：这里列出的代理节点 IP 会被 killswitch 放行并绕过 TUN。
+  # 修改后在容器内执行 `reload-proxy` 即可热生效，无需 recreate。
   route-exclude-address:
     - 203.0.113.10/32
     - 198.51.100.20/32
