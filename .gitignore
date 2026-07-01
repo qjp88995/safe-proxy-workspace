@@ -6,3 +6,7 @@ logs/
 .DS_Store
 Thumbs.db
 .codex
+
+# Local planning docs (specs & plans)
+docs/superpowers/
+.claude/plans/
