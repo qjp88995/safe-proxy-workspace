@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables \
     locales \
     openssh-client \
+    procps \
     sudo \
     tigervnc-standalone-server \
     tigervnc-tools \
@@ -65,6 +66,8 @@ RUN wget -O /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/downloa
 RUN mkdir -p /root/.config/mihomo /var/log
 COPY config.example.yaml /root/.config/mihomo/config.yaml
 COPY entrypoint.sh /entrypoint.sh
+COPY proxy-network.sh /usr/local/lib/proxy-network.sh
+COPY reload-proxy.sh /usr/local/bin/reload-proxy
 COPY skel/ /etc/skel/
 COPY desktop-session.sh /usr/local/bin/start-vnc-session
 COPY workspace-shell.sh /etc/profile.d/workspace-shell.sh
@@ -72,7 +75,7 @@ COPY workspace-shell.sh /etc/profile.d/workspace-shell.sh
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
-RUN chmod +x /entrypoint.sh /usr/local/bin/start-vnc-session
+RUN chmod +x /entrypoint.sh /usr/local/bin/start-vnc-session /usr/local/bin/reload-proxy
 RUN chmod 644 /etc/profile.d/workspace-shell.sh \
     && printf '\n[ -r /etc/profile.d/workspace-shell.sh ] && . /etc/profile.d/workspace-shell.sh\n' >> /etc/bash.bashrc
 
