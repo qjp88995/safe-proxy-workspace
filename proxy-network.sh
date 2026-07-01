@@ -5,6 +5,13 @@
 : "${MIHOMO_CONFIG_DIR:=/root/.config/mihomo}"
 : "${TUN_DEVICE:=Mihomo}"
 
+# 校验字符串是否为 IPv4 地址或 IPv4 CIDR。用于在把地址交给 iptables/ip 之前
+# 过滤掉手改 config.yaml 时写错的条目，避免单个坏地址在 set -e 下中断整个
+# killswitch/route 应用（导致 boot 崩溃重启或 reload 只应用一半规则）。
+_is_ipv4_cidr() {
+  [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$ ]]
+}
+
 # 从 config.yaml 的 tun.route-exclude-address 解析出 IP/CIDR 列表，每行一个。
 parse_route_exclude_addresses() {
   local config_file="${MIHOMO_CONFIG_DIR}/config.yaml"
@@ -43,6 +50,10 @@ apply_killswitch() {
 
   while IFS= read -r addr; do
     [ -n "${addr}" ] || continue
+    if ! _is_ipv4_cidr "${addr}"; then
+      echo "proxy-network: skipping invalid route-exclude-address (killswitch): ${addr}" >&2
+      continue
+    fi
     iptables -A OUTPUT -p tcp -d "${addr}" -j ACCEPT
     iptables -A OUTPUT -p udp -d "${addr}" -j ACCEPT
   done < <(parse_route_exclude_addresses)
@@ -59,6 +70,10 @@ apply_route_bypass() {
 
   while IFS= read -r addr; do
     [ -n "${addr}" ] || continue
+    if ! _is_ipv4_cidr "${addr}"; then
+      echo "proxy-network: skipping invalid route-exclude-address (route-bypass): ${addr}" >&2
+      continue
+    fi
     ip -4 rule add pref "${pref}" to "${addr}" lookup main
     pref=$((pref + 1))
   done < <(parse_route_exclude_addresses)
