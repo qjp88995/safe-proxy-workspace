@@ -37,7 +37,6 @@ cp config.example.yaml config.yaml
 
 3. Edit `.env`:
 
-- Set `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP` to the same proxy `IP:PORT` pairs from `config.yaml`
 - Set `WORKSPACE_MOUNT` if you want to mount a different host directory
 - Set `WORKSPACE_USER` if you want a different in-container username and home path
 
@@ -221,12 +220,25 @@ This project is designed to be fail-closed:
 - If the relay chain stops working, the container loses external connectivity instead of falling back to the host's real IP
 - IPv6 is disabled to reduce leak paths
 
-Two places must stay in sync:
+The direct-connect allowlist has a single source of truth: `config.yaml` →
+`tun.route-exclude-address`. It drives both Mihomo's TUN exclusion and the
+iptables killswitch/route-bypass rules, so there is nothing else to keep in
+sync.
 
-1. `.env`: `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP`
-2. `config.yaml`: `tun.route-exclude-address`
+### Changing the allowlist
 
-They must describe the same proxy endpoints.
+To point at different proxy endpoints:
+
+1. Edit `route-exclude-address` (and the matching `proxies[*].server`) in `config.yaml`.
+2. Apply it without recreating the container:
+
+```bash
+docker compose exec workspace reload-proxy
+```
+
+`reload-proxy` re-applies the killswitch/route-bypass rules and restarts Mihomo. Installed system software and the workspace home directory are untouched. Running `docker restart` on the container also re-applies the policy automatically through `entrypoint.sh`.
+
+> **One-time migration note:** if you're upgrading from an older version that kept a separate TCP/UDP allowlist in `.env`, the first `docker compose up -d` after upgrading recreates the container once (Docker detects the removed env vars). After that one-time recreate, allowlist changes never require a recreate again.
 
 ## Daily commands
 
@@ -246,6 +258,12 @@ View logs:
 
 ```bash
 docker compose logs -f workspace
+```
+
+Reload the allowlist after editing `config.yaml` (no recreate):
+
+```bash
+docker compose exec workspace reload-proxy
 ```
 
 Stop the container:
@@ -269,6 +287,8 @@ It also supports manual runs through `workflow_dispatch`.
 | `docker-compose.yml` | Runs the single workspace container and mounts the host project at `~/workspace` |
 | `runtime/` | Runtime-only package for published images |
 | `entrypoint.sh` | Sets up kill switch, route bypass, resolver, and UID/GID mapping |
+| `proxy-network.sh` | Shared killswitch/route-bypass/Mihomo-restart functions used by `entrypoint.sh` and `reload-proxy` |
+| `reload-proxy.sh` | Installed as `reload-proxy`; re-applies the allowlist and restarts Mihomo without recreating the container |
 | `desktop-session.sh` | Starts the XFCE session inside TigerVNC |
 | `enter-workspace.sh` | Enters the container as the mapped workspace user |
 | `skel/` | Default shell startup files copied into a new workspace home |

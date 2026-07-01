@@ -25,13 +25,12 @@ mkdir -p logs
 
 - Set `WORKSPACE_MOUNT` to an absolute host path
   If you leave it unset, Compose defaults to `./workspace` under this directory.
-- Set `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP` to the same proxy endpoints as `config.yaml`
 - For desktop mode, set `VNC_PASSWORD`
 
 3. Edit `config.yaml`:
 
 - Replace the sample proxy servers and credentials
-- Keep `tun.route-exclude-address` aligned with `.env`
+- `tun.route-exclude-address` is the single source of truth for the direct-connect allowlist — it drives both Mihomo's TUN exclusion and the iptables killswitch/route-bypass rules
 - Keep `device: Mihomo` unless you also change `.env`
 
 4. Start:
@@ -50,6 +49,25 @@ docker compose up -d
 Desktop mode uses `ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest` by
 default. Switch to `ghcr.io/qjp88995/safe-proxy-workspace:latest` and set
 `DESKTOP_MODE=0` if you want the CLI image instead.
+
+## Changing the allowlist
+
+To point at different proxy endpoints, edit `route-exclude-address` (and the
+matching `proxies[*].server`) in `config.yaml`, then reload without
+recreating the container:
+
+```bash
+docker compose exec workspace reload-proxy
+```
+
+`reload-proxy` re-applies the killswitch/route-bypass rules and restarts
+Mihomo; installed system software and the workspace home volume are
+untouched. `docker restart` on the container re-applies the same policy
+automatically through the entrypoint.
+
+The `reload-proxy` command ships inside the image itself — `docker compose
+pull` to the latest tag before using it if your running container predates
+this feature.
 
 ## Docker-out-of-Docker
 

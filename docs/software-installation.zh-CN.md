@@ -21,6 +21,8 @@ sudo dpkg-reconfigure tzdata
 
 映射用户的 home 目录会持久化到 Docker volume `workspace_home`，因此 `~` 下的改动在重建容器后仍然保留。相对地，使用 `sudo apt-get install ...` 安装到系统层的软件仍然属于镜像文件系统；如果某个软件每次都要用，最好直接写进对应的 Dockerfile。
 
+修改代理白名单（`config.yaml` 中的 `tun.route-exclude-address`）不再需要重建容器。编辑完 `config.yaml` 后执行 `docker compose exec workspace reload-proxy`（或在工作环境内执行 `sudo reload-proxy`）即可——它会重新加载 killswitch / 路由绕行规则并原地重启 Mihomo，本次会话中通过 `apt-get` 安装的软件不会丢失。
+
 ## UTF-8 编码
 
 镜像现在会在系统级默认生成并启用 `en_US.UTF-8`，因此你在 VNC 桌面里打开终端后，默认就应该已经是 UTF-8。

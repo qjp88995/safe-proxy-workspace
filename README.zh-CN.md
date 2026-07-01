@@ -37,7 +37,6 @@ cp config.example.yaml config.yaml
 
 3. 编辑 `.env`：
 
-- 把 `DIRECT_ALLOWLIST_TCP` 和 `DIRECT_ALLOWLIST_UDP` 设置成与 `config.yaml` 中相同的代理 `IP:PORT`
 - 如果要挂载别的工作目录，修改 `WORKSPACE_MOUNT`
 - 如果想修改容器内用户名和 home 路径名，设置 `WORKSPACE_USER`
 
@@ -221,12 +220,24 @@ docker compose up -d
 - 代理链失效时，容器会失去外网能力，而不是回落到宿主机真实 IP
 - 默认禁用 IPv6，以减少泄漏路径
 
-下面两处配置必须保持一致：
+直连白名单只有一个唯一来源：`config.yaml` 中的 `tun.route-exclude-address`。
+它同时驱动 Mihomo 的 TUN 排除规则和 iptables killswitch / 路由绕行规则，
+不再需要额外保持同步。
 
-1. `.env` 中的 `DIRECT_ALLOWLIST_TCP` 和 `DIRECT_ALLOWLIST_UDP`
-2. `config.yaml` 中的 `tun.route-exclude-address`
+### 修改白名单
 
-它们都必须描述同一组代理节点。
+要切换到不同的代理节点：
+
+1. 编辑 `config.yaml` 中的 `route-exclude-address`（以及对应的 `proxies[*].server`）。
+2. 无需重建容器即可生效：
+
+```bash
+docker compose exec workspace reload-proxy
+```
+
+`reload-proxy` 会重新应用 killswitch / 路由绕行规则并重启 Mihomo。已安装的系统软件和工作用户的 home 目录不受影响。对容器执行 `docker restart` 时，`entrypoint.sh` 也会自动重新应用同一套策略。
+
+> **一次性迁移说明：** 如果你是从 `.env` 里还带有独立 TCP / UDP 白名单变量的旧版本升级，升级后第一次 `docker compose up -d` 会因为这些环境变量被移除而重建容器一次。此后修改白名单就不会再触发重建。
 
 ## 常用命令
 
@@ -246,6 +257,12 @@ docker compose up -d --build
 
 ```bash
 docker compose logs -f workspace
+```
+
+编辑 `config.yaml` 后重新加载白名单（无需重建）：
+
+```bash
+docker compose exec workspace reload-proxy
 ```
 
 停止容器：
@@ -269,6 +286,8 @@ docker compose down
 | `docker-compose.yml` | 运行单一 workspace 容器并把宿主机项目挂载到 `~/workspace` |
 | `runtime/` | 面向预构建镜像的 runtime-only 目录 |
 | `entrypoint.sh` | 配置 kill switch、策略路由、DNS 和 UID/GID 映射 |
+| `proxy-network.sh` | killswitch / 路由绕行 / 重启 Mihomo 的共享函数，被 `entrypoint.sh` 和 `reload-proxy` 共用 |
+| `reload-proxy.sh` | 安装为容器内的 `reload-proxy` 命令，重新应用白名单并重启 Mihomo，无需重建容器 |
 | `desktop-session.sh` | 在 TigerVNC 中启动 XFCE 会话 |
 | `enter-workspace.sh` | 以映射后的工作用户进入容器 |
 | `skel/` | 新建工作用户 home 时使用的默认 shell 启动文件 |
