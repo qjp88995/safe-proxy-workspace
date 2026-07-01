@@ -35,8 +35,8 @@ parse_route_exclude_addresses() {
 
 apply_killswitch() {
   local addr
-  iptables -F OUTPUT
   iptables -P OUTPUT DROP
+  iptables -F OUTPUT
   iptables -A OUTPUT -o lo -j ACCEPT
   iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   iptables -A OUTPUT -o "${TUN_DEVICE}" -j ACCEPT
@@ -68,8 +68,8 @@ apply_ipv6_killswitch() {
   if [ "$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)" = "1" ]; then
     return 0
   fi
-  ip6tables -F OUTPUT
   ip6tables -P OUTPUT DROP
+  ip6tables -F OUTPUT
   ip6tables -A OUTPUT -o lo -j ACCEPT
   ip6tables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   ip6tables -A OUTPUT -o "${TUN_DEVICE}" -j ACCEPT
