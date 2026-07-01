@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+# shellcheck source=/dev/null
+source /usr/local/lib/proxy-network.sh
+
 MIHOMO_CONFIG_DIR="${MIHOMO_CONFIG_DIR:-/root/.config/mihomo}"
 TUN_DEVICE="${TUN_DEVICE:-Mihomo}"
-DIRECT_ALLOWLIST_TCP="${DIRECT_ALLOWLIST_TCP:-}"
-DIRECT_ALLOWLIST_UDP="${DIRECT_ALLOWLIST_UDP:-}"
 WORKSPACE_USER="${WORKSPACE_USER:-workspace}"
 WORKSPACE_HOME="${WORKSPACE_HOME:-/home/${WORKSPACE_USER}}"
 WORKSPACE_DIR="${WORKSPACE_DIR:-${WORKSPACE_HOME}/workspace}"
@@ -162,67 +163,6 @@ exec_as_workspace_user() {
     LOGNAME="${WORKSPACE_RUNTIME_USER}" \
     SHELL="/bin/bash" \
     "$@"
-}
-
-apply_killswitch() {
-  iptables -F OUTPUT
-  iptables -P OUTPUT DROP
-  iptables -A OUTPUT -o lo -j ACCEPT
-  iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-  iptables -A OUTPUT -o "${TUN_DEVICE}" -j ACCEPT
-
-  if [ -n "${DIRECT_ALLOWLIST_TCP}" ]; then
-    IFS=',' read -ra tcp_endpoints <<< "${DIRECT_ALLOWLIST_TCP}"
-    for endpoint in "${tcp_endpoints[@]}"; do
-      host="${endpoint%:*}"
-      port="${endpoint##*:}"
-      iptables -A OUTPUT -p tcp -d "${host}" --dport "${port}" -j ACCEPT
-    done
-  fi
-
-  if [ -n "${DIRECT_ALLOWLIST_UDP}" ]; then
-    IFS=',' read -ra udp_endpoints <<< "${DIRECT_ALLOWLIST_UDP}"
-    for endpoint in "${udp_endpoints[@]}"; do
-      host="${endpoint%:*}"
-      port="${endpoint##*:}"
-      iptables -A OUTPUT -p udp -d "${host}" --dport "${port}" -j ACCEPT
-    done
-  fi
-}
-
-apply_route_bypass() {
-  local pref=100
-  local endpoint host
-
-  for endpoint_list in "${DIRECT_ALLOWLIST_TCP}" "${DIRECT_ALLOWLIST_UDP}"; do
-    [ -n "${endpoint_list}" ] || continue
-    IFS=',' read -ra endpoints <<< "${endpoint_list}"
-    for endpoint in "${endpoints[@]}"; do
-      host="${endpoint%:*}"
-      if ! ip -4 rule show | grep -q "to ${host} lookup main"; then
-        ip -4 rule add pref "${pref}" to "${host}" lookup main
-        pref=$((pref + 1))
-      fi
-    done
-  done
-
-}
-
-apply_ipv6_killswitch() {
-  if [ "$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)" = "1" ]; then
-    return
-  fi
-
-  ip6tables -F OUTPUT
-  ip6tables -P OUTPUT DROP
-  ip6tables -A OUTPUT -o lo -j ACCEPT
-  ip6tables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-  ip6tables -A OUTPUT -o "${TUN_DEVICE}" -j ACCEPT
-}
-
-start_mihomo_background() {
-  /usr/local/bin/mihomo -d "${MIHOMO_CONFIG_DIR}" > /var/log/mihomo.log 2>&1 &
-  sleep 2
 }
 
 apply_killswitch

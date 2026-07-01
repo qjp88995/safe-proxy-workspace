@@ -2,14 +2,15 @@
 
 A fail-closed Docker workspace powered by Mihomo (Clash Meta). All container egress goes through a TUN-based proxy chain; traffic is dropped rather than leaked if the chain is unavailable.
 
-## Security Model — Two Places Must Stay in Sync
+## Security Model — Single Allowlist Source
 
-Whenever proxy endpoints change, update **both** of these together:
+The direct-connect allowlist has one source of truth: `config.yaml` →
+`tun.route-exclude-address`. It feeds both mihomo's TUN exclusion and the
+iptables killswitch / route-bypass (parsed at container start and on reload).
 
-1. `.env` — `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP`
-2. `config.yaml` — `tun.route-exclude-address`
-
-They must list the same proxy node IP:PORT pairs. Divergence causes either a traffic leak or a broken proxy connection.
+Change proxy endpoints by editing `route-exclude-address` (and the matching
+`proxies[*].server`) in `config.yaml`, then run `reload-proxy` inside the
+container — no recreate needed, installed system software is preserved.
 
 ## Key Files
 

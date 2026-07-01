@@ -41,6 +41,8 @@ Desktop/VNC mode:
 
 - `docker-compose.yml`: single `workspace` service, env wiring, volume mounts, TUN device, capabilities, VNC port, `/dev/shm`
 - `entrypoint.sh`: kill switch, direct allowlist rules, route bypass, resolver setup, workspace user creation/mapping
+- `proxy-network.sh`: shared functions for the killswitch/route-bypass/mihomo restart, sourced by both `entrypoint.sh` and `reload-proxy`
+- `reload-proxy.sh`: installed as `reload-proxy` in the image; re-applies the allowlist and restarts Mihomo without recreating the container
 - `enter-workspace.sh`: preferred way to enter the running container as the mapped user
 - `Dockerfile`: CLI image
 - `Dockerfile.desktop`: desktop/VNC image
@@ -52,7 +54,8 @@ Desktop/VNC mode:
 
 ## Critical Invariants
 
-- `.env` `DIRECT_ALLOWLIST_TCP` and `DIRECT_ALLOWLIST_UDP` must match the proxy endpoints excluded in `config.yaml` `tun.route-exclude-address`.
+- The direct-connect allowlist has a single source of truth: `config.yaml` `tun.route-exclude-address`. It drives both mihomo's TUN exclusion and the iptables killswitch/route-bypass rules, parsed at container start and again on `reload-proxy`.
+- After editing `route-exclude-address` (and the matching `proxies[*].server`), run `docker compose exec workspace reload-proxy` (or `sudo reload-proxy` inside the container) to apply it — no container recreate needed, installed system software is preserved.
 - `TUN_DEVICE` should stay aligned with the Mihomo config device name. Default is `Mihomo`.
 - This project is Linux-only because it depends on Docker, `/dev/net/tun`, and iptables/ip6tables behavior.
 - IPv6 is intentionally disabled or blocked to reduce leak paths.
@@ -81,6 +84,12 @@ Check exit IP:
 
 ```bash
 docker compose exec workspace curl -4 --max-time 15 https://ifconfig.me
+```
+
+Reload the allowlist after editing `config.yaml` (no recreate):
+
+```bash
+docker compose exec workspace reload-proxy
 ```
 
 Stop:
