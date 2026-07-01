@@ -6,6 +6,8 @@ services:
       dockerfile: ${DOCKERFILE:-Dockerfile}
     image: ${IMAGE_NAME:-safe-proxy-workspace:latest}
     restart: unless-stopped
+    # tini as PID 1 reaps zombies (e.g. mihomo restarted by reload-proxy).
+    init: true
     working_dir: /home/${WORKSPACE_USER:-workspace}/workspace
     command: sleep infinity
     environment:

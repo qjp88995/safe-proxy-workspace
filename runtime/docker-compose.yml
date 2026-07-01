@@ -3,6 +3,8 @@ services:
     container_name: ${CONTAINER_NAME:-safe-proxy-workspace}
     image: ${IMAGE_NAME:-ghcr.io/qjp88995/safe-proxy-workspace-desktop:latest}
     restart: unless-stopped
+    # tini as PID 1 reaps zombies (e.g. mihomo restarted by reload-proxy).
+    init: true
     working_dir: /home/${WORKSPACE_USER:-workspace}/workspace
     command: sleep infinity
     environment:

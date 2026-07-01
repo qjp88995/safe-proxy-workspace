@@ -81,10 +81,14 @@ start_mihomo_background() {
 }
 
 restart_mihomo() {
-  local i
+  local i live
   pkill -x mihomo 2>/dev/null || true
+  # 等待存活的 mihomo 退出。被杀的 mihomo 在 PID1 回收前会残留为 <defunct>
+  # 僵尸，pgrep 仍会匹配到它，因此这里只统计非僵尸（状态非 Z）的进程，
+  # 避免空等到超时。
   for ((i = 0; i < 50; i++)); do
-    pgrep -x mihomo >/dev/null 2>&1 || break
+    live="$(ps -o stat= -C mihomo 2>/dev/null | grep -vc '^Z' || true)"
+    [ "${live:-0}" = "0" ] && break
     sleep 0.1
   done
   # setsid 使新 mihomo 脱离当前（docker exec）会话，reparent 到 PID1 并存活。
