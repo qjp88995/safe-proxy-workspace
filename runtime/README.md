@@ -58,6 +58,8 @@ recreating the container:
 
 ```bash
 docker compose exec workspace reload-proxy
+# or, from inside the workspace shell:
+sudo reload-proxy
 ```
 
 `reload-proxy` re-applies the killswitch/route-bypass rules and restarts

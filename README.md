@@ -234,6 +234,8 @@ To point at different proxy endpoints:
 
 ```bash
 docker compose exec workspace reload-proxy
+# or, from inside the workspace shell:
+sudo reload-proxy
 ```
 
 `reload-proxy` re-applies the killswitch/route-bypass rules and restarts Mihomo. Installed system software and the workspace home directory are untouched. Running `docker restart` on the container also re-applies the policy automatically through `entrypoint.sh`.
@@ -264,6 +266,8 @@ Reload the allowlist after editing `config.yaml` (no recreate):
 
 ```bash
 docker compose exec workspace reload-proxy
+# or, from inside the workspace shell:
+sudo reload-proxy
 ```
 
 Stop the container:

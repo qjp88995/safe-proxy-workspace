@@ -233,6 +233,8 @@ docker compose up -d
 
 ```bash
 docker compose exec workspace reload-proxy
+# 或者，在工作环境内执行：
+sudo reload-proxy
 ```
 
 `reload-proxy` 会重新应用 killswitch / 路由绕行规则并重启 Mihomo。已安装的系统软件和工作用户的 home 目录不受影响。对容器执行 `docker restart` 时，`entrypoint.sh` 也会自动重新应用同一套策略。
@@ -263,6 +265,8 @@ docker compose logs -f workspace
 
 ```bash
 docker compose exec workspace reload-proxy
+# 或者，在工作环境内执行：
+sudo reload-proxy
 ```
 
 停止容器：
