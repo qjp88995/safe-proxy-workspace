@@ -62,6 +62,8 @@ For package updates and common software installation steps, see [Installing comm
 
 To add companion services such as PostgreSQL that share the workspace network, see [Companion services](docs/companion-services.md).
 
+To upgrade the bundled Mihomo binary, see [Upgrading Mihomo](docs/upgrading-mihomo.md).
+
 6. Check the exit IP:
 
 ```bash
